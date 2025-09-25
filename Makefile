@@ -1,9 +1,9 @@
 # Nome da classe principal
-MAIN = Main
+MAIN = main
 
 # Compila os arquivos .java
 compile:
-  javac $(MAIN).java Token.java
+	javac *.java
 
 # Roda o programa (depois de compilar)
 run: compile

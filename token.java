@@ -37,9 +37,9 @@ public class token {
         FMT_STRING
     }
 
-    private Type type;
-    private String lexeme;
-    private int lineNumber;
+    private final Type type;
+    private final String lexeme;
+    private final int lineNumber;
 
     public token(Type type, String lexeme, int lineNumber) {
         this.type = type;
