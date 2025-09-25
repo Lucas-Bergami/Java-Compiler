@@ -1,5 +1,5 @@
 # Nome da classe principal
-MAIN = main
+MAIN = Main
 
 # Compila os arquivos .java
 compile:
