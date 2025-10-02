@@ -1,3 +1,5 @@
+package com.compiler;
+
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Vector;
@@ -18,7 +20,7 @@ public class ReadFileToVector {
 
     // System.out.println("Caracteres lidos do arquivo:");
     // for (Character ch : characters) {
-    //   System.out.print(ch);
+    // System.out.print(ch);
     // }
     return characters;
   }
