@@ -2,12 +2,6 @@ package com.compiler;
 
 import java.util.Vector;
 import java.util.Map;
-import java.util.HashMap;
-
-import com.compiler.Token;
-import com.compiler.ReadFileToVector;
-import com.compiler.LexicalAnalyser;
-import com.compiler.JsonExporter;
 
 public class Main {
   public static void main(String[] args) {

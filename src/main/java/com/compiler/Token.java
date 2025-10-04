@@ -62,24 +62,14 @@ public class Token {
     }
 
     public static Type fromLexeme(String lexeme) {
-      System.out.println("fromLexeme chamado com: \"" + lexeme + "\"");
-
       for (Type t : Type.values()) {
         if (t.pattern != null) {
           boolean matches = t.pattern.matcher(lexeme).matches();
-          // System.out.println(" testando " + t.name() + " com regex " + t.pattern + " =>
-          // " + matches);
-
           if (matches) {
-            System.out.println("  MATCH encontrado: " + t.name());
             return t;
           }
-        } else {
-          System.out.println("  " + t.name() + " não tem pattern, ignorando");
         }
       }
-
-      System.out.println("  Nenhum match encontrado, retornando null");
       return null;
     }
 

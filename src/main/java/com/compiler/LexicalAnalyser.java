@@ -9,7 +9,6 @@ public class LexicalAnalyser {
   private Vector<Token> tokens = new Vector<Token>();
   private Vector<Token> errors = new Vector<Token>();
   private boolean usedLast = false;
-  private static final String SYMBOLS = "(){},;:+-*/";
   private String lexeme = "";
   private int line = 1;
 
@@ -19,57 +18,36 @@ public class LexicalAnalyser {
     for (int i = 0; i < characters.size(); i++) {
       char currentChar = characters.get(i);
 
-      switch (currentState) {
-        case 0:
-          currentState = stateZero(currentChar);
-          break;
-        case 1:
-          currentState = stateOne(currentChar);
-          break;
-        case 2:
-          currentState = stateTwo(currentChar);
-          break;
-        case 3:
-          currentState = stateThree(currentChar);
-          break;
-        case 4:
-          currentState = stateFour(currentChar);
-          break;
-        case 5:
-          currentState = stateFive(currentChar);
-          break;
-        case 6:
-          currentState = stateSix(currentChar);
-          break;
-        case 7:
-          currentState = stateSeven(currentChar);
-          break;
-        case 8:
-          currentState = stateEight(currentChar);
-          break;
-        case 9:
-          currentState = stateNine(currentChar);
-          break;
-        case 10:
-          currentState = stateTen(currentChar);
-          break;
-        case 11:
-          currentState = stateEleven(currentChar);
-          break;
-        case 12:
-          currentState = stateTwelve(currentChar);
-          break;
-        default:
-          currentState = 0;
-      }
+        currentState = switch (currentState) {
+            case 0 -> stateZero(currentChar);
+            case 1 -> stateOne(currentChar);
+            case 2 -> stateTwo(currentChar);
+            case 3 -> stateThree(currentChar);
+            case 4 -> stateFour(currentChar);
+            case 5 -> stateFive(currentChar);
+            case 6 -> stateSix(currentChar);
+            case 7 -> stateSeven(currentChar);
+            case 8 -> stateEight(currentChar);
+            case 9 -> stateNine(currentChar);
+            case 10 -> stateTen(currentChar);
+            case 11 -> stateEleven(currentChar);
+            case 12 -> stateTwelve(currentChar);
+            default -> 0;
+        };
       if (usedLast) {
-        System.err.println("usedLast ativado, voltando um índice i--");
+        //System.err.println("usedLast ativado, voltando um índice i--");
         i--;
         usedLast = false;
       }
 
     }
 
+      Token.Type type = Token.Type.fromLexeme(lexeme);
+      if (type == null) {
+          errors.add(createToken());
+      }else {
+          tokens.add(createToken());
+      }
     Map<String, Vector<Token>> result = new HashMap<>();
     result.put("tokens", tokens);
     result.put("errors", errors);
@@ -78,100 +56,45 @@ public class LexicalAnalyser {
 
   private Token createToken() {
     Token.Type type = Token.Type.fromLexeme(lexeme);
-    if (type == null) {
-      System.err.println("Token não identificado na linha " + line);
-    }
     Token newToken = new Token(type, lexeme, line);
     lexeme = "";
     return newToken;
   }
 
   public static boolean isValidChar(char c) {
-    String lexeme = String.valueOf(c); // transforma char em String
+    String lexeme = String.valueOf(c);
 
-    // Verifica se o char pode iniciar algum token pelo enum
     for (Token.Type t : Token.Type.values()) {
       if (t.getPattern() != null) {
         if (t.getPattern().matcher(lexeme).matches()) {
-          System.out.println("DEBUG: '" + c + "' é válido para token " + t.name());
+          //System.out.println("DEBUG: '" + c + "' é válido para token " + t.name());
           return true;
         }
       }
     }
 
-    // Espaços, tabulação e nova linha
     if (Character.isWhitespace(c)) {
-      System.out.println("DEBUG: '" + c + "' é whitespace");
+      //System.out.println("DEBUG: '" + c + "' é whitespace");
       return true;
     }
 
-    // Aspas simples, duplas e ponto
-    if (c == '\'' || c == '"' || c == '.') {
-      System.out.println("DEBUG: '" + c + "' é aspas simples, duplas ou ponto");
-      return true;
-    }
+      //System.out.println("DEBUG: '" + c + "' é aspas simples, duplas ou ponto");
+      return c == '\'' || c == '"' || c == '.';
 
-    // Se não bateu com nenhum token nem é espaço nem aspas/ponto
-    System.out.println("DEBUG: '" + c + "' não é válido");
-    return false;
+    //System.out.println("DEBUG: '" + c + "' não é válido");
   }
+
   // ------------------ ESTADOS ---------------------
 
   private int stateZero(Character ch) {
     int nextState = 0;
 
     switch (ch) {
-      case '(':
+      case '(', ')', '{', '}', ':', ';', ',', '+', '*', '/':
         lexeme += ch;
         tokens.add(createToken());
-        lexeme = "";
         break;
-      case ')':
-        lexeme += ch;
-        tokens.add(createToken());
-        lexeme = "";
-        break;
-      case '{':
-        lexeme += ch;
-        tokens.add(createToken());
-        lexeme = "";
-        break;
-      case '}':
-        lexeme += ch;
-        tokens.add(createToken());
-        lexeme = "";
-        break;
-      case ':':
-        lexeme += ch;
-        tokens.add(createToken());
-        lexeme = "";
-        break;
-      case ';':
-        lexeme += ch;
-        tokens.add(createToken());
-        lexeme = "";
-        break;
-      case ',':
-        lexeme += ch;
-        tokens.add(createToken());
-        lexeme = "";
-        break;
-      case '+':
-        lexeme += ch;
-        tokens.add(createToken());
-        lexeme = "";
-        break;
-      case '*':
-        lexeme += ch;
-        tokens.add(createToken());
-        lexeme = "";
-        break;
-      case '/':
-        lexeme += ch;
-        tokens.add(createToken());
-        lexeme = "";
-        break;
-      case '\n':
+        case '\n':
         line++;
         break;
       case ' ':
@@ -237,8 +160,10 @@ public class LexicalAnalyser {
       lexeme += ch;
       tokens.add(createToken());
     } else {
-      System.err.println("ERRO NA LINHA: " + line);
-      System.exit(1);
+      //System.err.println("ERRO NA LINHA: " + line);
+        errors.add(createToken());
+        lexeme += ch;
+        usedLast = true;
     }
     return 0;
   }
@@ -303,8 +228,13 @@ public class LexicalAnalyser {
 
   private int stateEight(Character ch) {
     if (!Character.isDigit(ch)) {
-      System.err.println("ERRO NA LINHA: " + line);
-      System.exit(1);
+      //System.err.println("ERRO NA LINHA: " + line);
+        lexeme = lexeme.substring(0, lexeme.length() - 1);
+        tokens.add(createToken());
+        lexeme += '.';
+        errors.add(createToken());
+        usedLast = true;
+        return 0;
     }
     lexeme += ch;
     return 9;
@@ -328,11 +258,13 @@ public class LexicalAnalyser {
 
   private int stateEleven(Character ch) {
     if (!(ch == '\'')) {
-      System.err.println("ERRO NA LINHA: " + line);
-      System.exit(1);
+      //System.err.println("ERRO NA LINHA: " + line);
+        lexeme += ch;
+        errors.add(createToken());
+    }else {
+        lexeme += ch;
+        tokens.add(createToken());
     }
-    lexeme += ch;
-    tokens.add(createToken());
     return 0;
   }
 
