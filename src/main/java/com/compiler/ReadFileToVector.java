@@ -18,10 +18,6 @@ public class ReadFileToVector {
       System.out.println("Erro ao ler o arquivo: " + e.getMessage());
     }
 
-    // System.out.println("Caracteres lidos do arquivo:");
-    // for (Character ch : characters) {
-    // System.out.print(ch);
-    // }
     return characters;
   }
 }

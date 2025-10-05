@@ -35,7 +35,6 @@ public class LexicalAnalyser {
             default -> 0;
         };
       if (usedLast) {
-        //System.err.println("usedLast ativado, voltando um índice i--");
         i--;
         usedLast = false;
       }
@@ -67,21 +66,17 @@ public class LexicalAnalyser {
     for (Token.Type t : Token.Type.values()) {
       if (t.getPattern() != null) {
         if (t.getPattern().matcher(lexeme).matches()) {
-          //System.out.println("DEBUG: '" + c + "' é válido para token " + t.name());
           return true;
         }
       }
     }
 
     if (Character.isWhitespace(c)) {
-      //System.out.println("DEBUG: '" + c + "' é whitespace");
       return true;
     }
 
-      //System.out.println("DEBUG: '" + c + "' é aspas simples, duplas ou ponto");
       return c == '\'' || c == '"' || c == '.';
 
-    //System.out.println("DEBUG: '" + c + "' não é válido");
   }
 
   // ------------------ ESTADOS ---------------------
@@ -160,7 +155,6 @@ public class LexicalAnalyser {
       lexeme += ch;
       tokens.add(createToken());
     } else {
-      //System.err.println("ERRO NA LINHA: " + line);
         errors.add(createToken());
         lexeme += ch;
         usedLast = true;
@@ -228,7 +222,6 @@ public class LexicalAnalyser {
 
   private int stateEight(Character ch) {
     if (!Character.isDigit(ch)) {
-      //System.err.println("ERRO NA LINHA: " + line);
         lexeme = lexeme.substring(0, lexeme.length() - 1);
         tokens.add(createToken());
         lexeme += '.';
@@ -258,7 +251,6 @@ public class LexicalAnalyser {
 
   private int stateEleven(Character ch) {
     if (!(ch == '\'')) {
-      //System.err.println("ERRO NA LINHA: " + line);
         lexeme += ch;
         errors.add(createToken());
     }else {
