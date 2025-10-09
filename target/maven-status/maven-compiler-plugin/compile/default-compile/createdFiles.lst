@@ -1,6 +1,0 @@
-com/compiler/Token$Type.class
-com/compiler/JsonExporter.class
-com/compiler/Main.class
-com/compiler/ReadFileToVector.class
-com/compiler/Token.class
-com/compiler/LexicalAnalyser.class
