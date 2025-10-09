@@ -36,6 +36,14 @@ mvn compile
 
 3. Execute a aplicação:
 
+
+ Para executar normalmente sem argumentos, o programa usará o arquivo padrão `example.txt`:
+
 ```bash
 mvn exec:java
 ```
+Para executar passando um arquivo específico como argumento:
+
+```bash
+mvn exec:java -Dexec.args="arquivo.txt"
+``
