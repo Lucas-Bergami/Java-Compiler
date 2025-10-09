@@ -40,13 +40,14 @@ public class LexicalAnalyser {
       }
 
     }
-
-      Token.Type type = Token.Type.fromLexeme(lexeme);
-      if (type == null) {
-          errors.add(createToken());
-      }else {
-          tokens.add(createToken());
-      }
+        if(!lexeme.isEmpty()) {
+            Token.Type type = Token.Type.fromLexeme(lexeme);
+            if (type == null) {
+                errors.add(createToken());
+            }else {
+                tokens.add(createToken());
+            }
+        }
     Map<String, Vector<Token>> result = new HashMap<>();
     result.put("tokens", tokens);
     result.put("errors", errors);
