@@ -6,11 +6,14 @@ public class SyntaticAnalyzer {
 	private Vector<Token> tokensToAnalyse;
 	private int currentTokenIndex;
 	private Token.Type currentTokenType;
+	private Vector<SymbolTable> symbolTables;
 
 	public void analyse(Vector<Token> tokens){
 		tokensToAnalyse = tokens;
 		currentTokenIndex = 0;
 		currentTokenType = tokensToAnalyse.get(currentTokenIndex).getType();
+		programa();
+
 	}
 
 private void lidaComErro(Token.Type expectedToken, Token.Type foundToken){
@@ -58,10 +61,15 @@ private void lidaComErro(Token.Type expectedToken, Token.Type foundToken){
 	}
 
 	private void nomeFuncao() {
+		SymbolTable newSymbolTable;
 		if (currentTokenType == Token.Type.ID){
+			newSymbolTable = new SymbolTable(tokensToAnalyse.get(currentTokenIndex).getLexeme());
 			match(Token.Type.ID);
-		} else if (currentTokenType == Token.Type.MAIN){
+			symbolTables.add(newSymbolTable);
+		} else {
+			newSymbolTable = new SymbolTable(tokensToAnalyse.get(currentTokenIndex).getLexeme());
 			match(Token.Type.MAIN);
+			symbolTables.add(newSymbolTable);
 		}
 	}
 
@@ -89,14 +97,27 @@ private void lidaComErro(Token.Type expectedToken, Token.Type foundToken){
 	}
 
 	private void tipoRetornoFuncao() {
-		if (currentTokenType == Token.Type.INT
-		|| currentTokenType == Token.Type.FLOAT
-		|| currentTokenType == Token.Type.CHAR){
-			type();
-		} else {
-			return;
-		}
-	}
+    if (symbolTables.isEmpty()) return;
+
+    SymbolTable currentTable = symbolTables.lastElement();
+
+    if (currentTokenType == Token.Type.INT) {
+        currentTable.setReturnType(SymbolTable.DataType.INT);
+        type();
+    } 
+    else if (currentTokenType == Token.Type.FLOAT) {
+        currentTable.setReturnType(SymbolTable.DataType.FLOAT);
+        type();
+    } 
+    else if (currentTokenType == Token.Type.CHAR) {
+        currentTable.setReturnType(SymbolTable.DataType.CHAR);
+        type();
+    } 
+    else {
+        currentTable.setReturnType(SymbolTable.DataType.VOID);
+    }
+}
+
 
 	private void bloco() {
 		match(Token.Type.LBRACE);

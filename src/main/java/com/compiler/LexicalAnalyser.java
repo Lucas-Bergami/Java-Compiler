@@ -50,7 +50,7 @@ public class LexicalAnalyser {
         }
     Map<String, Vector<Token>> result = new HashMap<>();
     result.put("tokens", tokens);
-    result.put("errors", errors);
+    result.put("lexical-errors", errors);
     return result;
   }
 
