@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 public class Token {
   public enum Type {
     // Palavras-chave e símbolos fixos
-    FUNCTION("function"),
+    FUNCTION("fn"),
     MAIN("main"),
     LET("let"),
     INT("int"),
