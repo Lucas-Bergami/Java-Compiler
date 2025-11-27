@@ -1,6 +1,10 @@
 package com.compiler;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
+
+import static com.compiler.AstNode.NodeType.*;
 
 public class SyntacticAnalyzer {
     private Vector<Token> tokensToAnalyse;
@@ -8,15 +12,18 @@ public class SyntacticAnalyzer {
     private Token.Type currentTokenType;
     private Vector<SymbolTable> symbolTables;
     private Vector<String> errors;
+    public AstNode root;
 
-    public void analyse(Vector<Token> tokens){
+    public AstNode analyse(Vector<Token> tokens){
         System.out.println("Entrou em analyse()");
+        root = new AstNode(AST);
         symbolTables = new Vector<>();
         errors = new Vector<>();
         tokensToAnalyse = tokens;
         currentTokenIndex = 0;
         currentTokenType = tokensToAnalyse.get(currentTokenIndex).getType();
         programa();
+        return root;
     }
 
     private void lidaComErro(Token.Type expectedToken) {
@@ -90,6 +97,7 @@ public class SyntacticAnalyzer {
 
     private void funcao() {
         System.out.println("Entrou em funcao()");
+        AstNode child = new AstNode(FUNCTION);
         if(currentTokenType == null) {
             return;
         }
@@ -99,7 +107,8 @@ public class SyntacticAnalyzer {
         listaParams();
         match(Token.Type.RBRACKET);
         tipoRetornoFuncao();
-        bloco();
+        child.setDataType(symbolTables.lastElement().getReturnType());
+        child.addChild(bloco());
     }
 
     private void listaParams() {
@@ -146,24 +155,28 @@ public class SyntacticAnalyzer {
         }
     }
 
-    private void bloco() {
+    private AstNode bloco() {
         System.out.println("Entrou em bloco()");
+        AstNode child = new AstNode(BLOCK);
         match(Token.Type.LBRACE);
-        sequencia();
+        child.addChildren(sequencia());
         match(Token.Type.RBRACE);
+        return child;
     }
 
-    private void sequencia() {
+    private List<AstNode> sequencia() {
         System.out.println("Entrou em sequencia()");
+        List<AstNode> children = new ArrayList<>();
         if (currentTokenType == Token.Type.LET) {
             declaracao();
-            sequencia();
+            children.addAll(sequencia());
         } else if (currentTokenType == Token.Type.ID || currentTokenType == Token.Type.WHILE
                 || currentTokenType == Token.Type.PRINTLN || currentTokenType == Token.Type.RETURN
                 || currentTokenType == Token.Type.IF || currentTokenType == Token.Type.LBRACE){
             comando();
             sequencia();
         }
+        return children;
     }
 
     private void declaracao() {
@@ -205,9 +218,10 @@ public class SyntacticAnalyzer {
 
     private void comando() {
         System.out.println("Entrou em comando()");
+        AstNode child;
         if(currentTokenType == Token.Type.ID) {
             match(Token.Type.ID);
-            atribuicaoOuChamada();
+            child = atribuicaoOuChamada();
         } else if(currentTokenType == Token.Type.WHILE) {
             match(Token.Type.WHILE);
             expr();
@@ -232,20 +246,26 @@ public class SyntacticAnalyzer {
         }
     }
 
-    private void atribuicaoOuChamada() {
+    private AstNode atribuicaoOuChamada() {
         System.out.println("Entrou em atribuicaoOuChamada()");
+        AstNode child = null;
         if(currentTokenType == Token.Type.ASSIGN){
+            child = new AstNode(ASSIGN);
+            AstNode leftChild = new AstNode(ID);
+            leftChild.setValue(tokensToAnalyse.get(currentTokenIndex -1).getLexeme());
             match(Token.Type.ASSIGN);
-            expr();
+            AstNode rightChild = expr();
             match(Token.Type.SEMICOLON);
         } else if(currentTokenType == Token.Type.LBRACKET){
             match(Token.Type.LBRACKET);
-            listaArgs();
+            child = new AstNode(CALL);
+            child.addChildren(listaArgs());
             match(Token.Type.RBRACKET);
             match(Token.Type.SEMICOLON);
         }else {
-            match(Token.Type.ASSIGN);
+            match(Token.Type.ASSIGN);//todo: testar quando for erro
         }
+        return child;
     }
 
     private void comandoSe() {
@@ -270,10 +290,12 @@ public class SyntacticAnalyzer {
         }
     }
 
-    private void expr() {
+    private AstNode expr() {
         System.out.println("Entrou em expr()");
-        rel();
+        AstNode child;
+        child = rel();
         exprOpc();
+        return child;
     }
 
     private void exprOpc() {
@@ -296,10 +318,15 @@ public class SyntacticAnalyzer {
         }
     }
 
-    private void rel() {
+    private AstNode rel() {
         System.out.println("Entrou em rel()");
-        adicao();
-        relOpc();
+        AstNode child = new AstNode(RELOP);
+        AstNode leftChild = adicao();
+        AstNode rightChild = relOpc();
+        if(rightChild == null){
+            return leftChild;
+        }
+        return child;
     }
 
     private void relOpc() {
@@ -329,8 +356,13 @@ public class SyntacticAnalyzer {
 
     private void adicao() {
         System.out.println("Entrou em adicao()");
-        termo();
-        adicaoOpc();
+        AstNode child = new AstNode(ARITOP);
+        AstNode leftChild = termo();
+        AstNode rightChild = adicaoOpc();
+        if(rightChild == null){
+            return leftChild;
+        }
+        return child;
     }
 
     private void adicaoOpc() {
@@ -353,10 +385,15 @@ public class SyntacticAnalyzer {
         }
     }
 
-    private void termo() {
+    private AstNode termo() {
         System.out.println("Entrou em termo()");
-        fator();
-        termoOpc();
+        AstNode child = new AstNode(ARITOP);
+        AstNode leftChild = fator();
+        AstNode rightChild = termoOpc();
+        if(rightChild == null){
+            return leftChild;
+        }
+        return child;
     }
 
     private void termoOpc() {
@@ -404,19 +441,22 @@ public class SyntacticAnalyzer {
     private void chamadaFuncao() {
         System.out.println("Entrou em chamadaFuncao()");
         if(currentTokenType == Token.Type.LBRACKET ){
+            AstNode child = new AstNode(CALL);
             match(Token.Type.LBRACKET);
-            listaArgs();
+            child.addChildren(listaArgs());
             match(Token.Type.RBRACKET);
         }
     }
 
-    private void listaArgs() {
+    private List<AstNode> listaArgs() {
         System.out.println("Entrou em listaArgs()");
+        List<AstNode> children;
         if(currentTokenType == Token.Type.ID || currentTokenType == Token.Type.INT_CONST
                 || currentTokenType == Token.Type.FLOAT_CONST || currentTokenType == Token.Type.CHAR_LITERAL){
             arg();
             listaArgs2();
         }
+        return children;
     }
 
     private void listaArgs2() {

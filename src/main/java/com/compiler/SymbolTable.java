@@ -16,7 +16,7 @@ public class SymbolTable {
     private String tableName;
     private Map<String, Symbol> symbols;
     private List<FunctionRegister> functions;
-    private DataType returnType;
+    private static DataType returnType;
 
     public SymbolTable(String tableName) {
         this.tableName = tableName;
@@ -139,7 +139,7 @@ public class SymbolTable {
         }
     }
 
-    private static class FunctionRegister {
+    static class FunctionRegister {
         private String name;
         private int numArgs;
         private List<String> args;
@@ -169,6 +169,13 @@ public class SymbolTable {
                     ", numArgs=" + numArgs +
                     ", args=" + args +
                     '}';
+        }
+
+        public DataType getReturnType() {
+            return returnType;
+        }
+        public Collection<Object> getParameters() {
+            return List.of();
         }
     }
 }

@@ -1,31 +1,27 @@
 package com.compiler;
 
-import java.util.Vector;
 import java.util.Map;
+import java.util.Vector;
 
 public class Main {
     public static void main(String[] args) {
+
         String fileName = "example.txt";
-        Vector<Character> characters;
-        Map<String, Vector<Token>> result;
 
         if (args.length > 0) {
             fileName = args[0];
         }
 
-        // === 1️⃣ Leitura e análise léxica ===
-        characters = ReadFileToVector.readFileToVector(fileName);
+        // === 1️⃣ Leitura do arquivo e análise léxica ===
+        Vector<Character> characters = ReadFileToVector.readFileToVector(fileName);
+
         LexicalAnalyser lexical = new LexicalAnalyser();
-        result = lexical.analyse(characters);
+        Map<String, Vector<Token>> result = lexical.analyse(characters);
 
         JsonExporter exporter = new JsonExporter();
-        // Exporta tokens válidos
         exporter.exportToFile(result.get("tokens"), "tokens.json");
-
-        // Exporta tokens de erro
         exporter.exportToFile(result.get("lexical-errors"), "errors.json");
 
-        // === 2️⃣ Análise sintática ===
         Vector<Token> tokens = result.get("tokens");
 
         if (tokens == null || tokens.isEmpty()) {
@@ -33,13 +29,21 @@ public class Main {
             return;
         }
 
+        // === 2️⃣ Análise sintática ===
         SyntacticAnalyzer syntactic = new SyntacticAnalyzer();
-        syntactic.analyse(tokens);
+        AstNode root = syntactic.analyse(tokens);   // Agora deve retornar a AST corretamente
 
-        // === 3️⃣ Salvar resultados da análise sintática ===
+
+        if (root == null) {
+            System.out.println("A AST não foi construída. Análise semântica cancelada.");
+            return;
+        }
         syntactic.saveOutputs();
+        // === 3️⃣ Análise semântica ===
+        SemanticAnalyzer semantic = new SemanticAnalyzer();
+        semantic.analyze(root);
 
-        System.out.println("Análise sintática concluída!");
-        System.out.println("Arquivos gerados: erros_sintaticos.txt e tabelas_de_simbolos.txt");
+        System.out.println("Análise semântica concluída com sucesso!");
+        System.out.println("Arquivos gerados: tokens.json, errors.json, erros_sintaticos.json, tabelas_de_simbolos.json");
     }
 }
