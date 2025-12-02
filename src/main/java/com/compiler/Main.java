@@ -1,5 +1,6 @@
 package com.compiler;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -44,11 +45,18 @@ public class Main {
         }
 
         System.out.println("=== Árvore de Sintaxe Abstrata (AST) ===");
-        printAst(root);
         syntactic.saveOutputs();
         // === 3️⃣ Análise semântica ===
-        SemanticAnalyzer semantic = new SemanticAnalyzer();
-        semantic.analyze(root);
+            // === 3️⃣ Análise semântica ===
+        SemanticAnalyzer semantic = new SemanticAnalyzer(aux);  // ⚡ Passa o Aux aqui
+        List<String> semanticErrors = semantic.analyze();        // ⚡ Executa a análise
+
+        if (!semanticErrors.isEmpty()) {
+            System.out.println("Erros semânticos encontrados:");
+            semanticErrors.forEach(System.out::println);
+        } else {
+            System.out.println("Análise semântica concluída com sucesso!");
+        }
 
         System.out.println("Análise semântica concluída com sucesso!");
         System.out.println("Arquivos gerados: tokens.json, errors.json, erros_sintaticos.json, tabelas_de_simbolos.json");
