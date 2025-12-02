@@ -2,7 +2,6 @@ package com.compiler;
 
 import java.util.*;
 
-
 public class SymbolTable {
 
     public enum DataType {
@@ -16,51 +15,35 @@ public class SymbolTable {
     private String tableName;
     private Map<String, Symbol> symbols;
     private List<FunctionRegister> functions;
-    private static DataType returnType;
+    private SymbolTable parent; // escopo pai
+    private DataType returnType;
 
     public SymbolTable(String tableName) {
+        this(tableName, null);
+    }
+
+    public SymbolTable(String tableName, SymbolTable parent) {
         this.tableName = tableName;
         this.symbols = new HashMap<>();
         this.functions = new ArrayList<>();
-        this.returnType = DataType.VOID; 
+        this.parent = parent;
+        this.returnType = DataType.VOID;
     }
 
-    public String getTableName() {
-        return tableName;
+    public SymbolTable getParent() {
+        return parent;
     }
 
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
+    public String getTableName() { return tableName; }
+    public void setTableName(String tableName) { this.tableName = tableName; }
 
-    public Map<String, Symbol> getSymbols() {
-        return symbols;
-    }
+    public Map<String, Symbol> getSymbols() { return symbols; }
+    public List<FunctionRegister> getFunctions() { return functions; }
 
-    public void setSymbols(Map<String, Symbol> symbols) {
-        this.symbols = symbols;
-    }
+    public DataType getReturnType() { return returnType; }
+    public void setReturnType(DataType returnType) { this.returnType = returnType; }
 
-    public List<FunctionRegister> getFunctions() {
-        return functions;
-    }
-
-    public void setFunctions(List<FunctionRegister> functions) {
-        this.functions = functions;
-    }
-
-    public DataType getReturnType() {
-        return returnType;
-    }
-
-    public void setReturnType(DataType returnType) {
-        this.returnType = returnType;
-    }
-
-    // ==========================
-    //  MÉTODOS DE SÍMBOLOS
-    // ==========================
-
+    // --------------------- Símbolos ---------------------
     public void addSymbol(String name, String dataType, boolean isParam, int posParam) {
         symbols.put(name, new Symbol(name, dataType, isParam, posParam));
     }
@@ -73,8 +56,8 @@ public class SymbolTable {
         return symbols.containsKey(name);
     }
 
-    public int addFunction(String name, int numArgs, List<String> args) {
-        FunctionRegister func = new FunctionRegister(name, numArgs, args);
+    public int addFunction(String name, int numArgs, List<String> args, DataType returnType) {
+        FunctionRegister func = new FunctionRegister(name, numArgs, args, returnType);
         functions.add(func);
         return functions.size() - 1;
     }
@@ -103,29 +86,12 @@ public class SymbolTable {
             this.callRefs = new ArrayList<>();
         }
 
-        public void addCallRef(int functionIndex) {
-            callRefs.add(functionIndex);
-        }
-
-        public List<Integer> getCallRefs() {
-            return callRefs;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public String getDataType() {
-            return dataType;
-        }
-
-        public boolean isParam() {
-            return isParam;
-        }
-
-        public int getPosParam() {
-            return posParam;
-        }
+        public void addCallRef(int functionIndex) { callRefs.add(functionIndex); }
+        public List<Integer> getCallRefs() { return callRefs; }
+        public String getName() { return name; }
+        public String getDataType() { return dataType; }
+        public boolean isParam() { return isParam; }
+        public int getPosParam() { return posParam; }
 
         @Override
         public String toString() {
@@ -143,24 +109,19 @@ public class SymbolTable {
         private String name;
         private int numArgs;
         private List<String> args;
+        private DataType returnType;
 
-        public FunctionRegister(String name, int numArgs, List<String> args) {
+        public FunctionRegister(String name, int numArgs, List<String> args, DataType returnType) {
             this.name = name;
             this.numArgs = numArgs;
             this.args = (args != null) ? args : new ArrayList<>();
+            this.returnType = returnType;
         }
 
-        public String getName() {
-            return name;
-        }
-
-        public int getNumArgs() {
-            return numArgs;
-        }
-
-        public List<String> getArgs() {
-            return args;
-        }
+        public String getName() { return name; }
+        public int getNumArgs() { return numArgs; }
+        public List<String> getArgs() { return args; }
+        public DataType getReturnType() { return returnType; }
 
         @Override
         public String toString() {
@@ -168,14 +129,8 @@ public class SymbolTable {
                     "name='" + name + '\'' +
                     ", numArgs=" + numArgs +
                     ", args=" + args +
+                    ", returnType=" + returnType +
                     '}';
-        }
-
-        public DataType getReturnType() {
-            return returnType;
-        }
-        public Collection<Object> getParameters() {
-            return List.of();
         }
     }
 }

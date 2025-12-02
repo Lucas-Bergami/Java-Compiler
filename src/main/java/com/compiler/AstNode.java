@@ -64,4 +64,23 @@ public class AstNode {
     public AstNode getChild(int index) {
         return children.get(index);
     }
+    public static void printAst(AstNode node) {
+        printAst(node, 0);
+    }
+
+    private static void printAst(AstNode node, int depth) {
+        if (node == null) return;
+
+        // imprime recuo conforme a profundidade
+        System.out.print("  ".repeat(depth));
+
+        // imprime o nó: tipo e valor
+        System.out.println(node.getNodeType() + (node.getValue() != null ? " : " + node.getValue() : ""));
+
+        // percorre filhos recursivamente
+        for (AstNode child : node.getChildren()) {
+            printAst(child, depth + 1);
+        }
+    }
+
 }
