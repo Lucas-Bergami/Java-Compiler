@@ -2,268 +2,321 @@ package com.compiler;
 
 import java.util.*;
 
+import com.compiler.SymbolTable.FunctionRegister;
 import com.compiler.SyntacticAnalyzer.Aux;
 
 public class SemanticAnalyzer {
 
-    private SymbolTable globalTable;
-    private SymbolTable currentScope;
+    private Aux aux; 
+    private List<String> errors;
+    private Map<String, SymbolTable> tableMap; // nome -> tabela
 
-    public SemanticAnalyzer() {
-        this.globalTable = new SymbolTable("global");
-        this.currentScope = globalTable;
+    public SemanticAnalyzer(Aux aux) {
+        this.aux = aux;
+        this.errors = new ArrayList<>();
+        this.tableMap = new HashMap<>();
+
+        // cria um map para acesso rápido às tabelas por nome
+        for (SymbolTable st : aux.symbolTables) {
+            tableMap.put(st.getTableName(), st);
+        }
     }
 
-    public void analyze(Aux aux) {
-        if (aux.root != null) visit(aux.root);
+    public List<String> analyze() {
+        AstNode root = aux.root;
+
+        if (root == null) {
+            errors.add("AST Root is null.");
+            return errors;
+        }
+
+        // cada FUNCTION na AST corresponde a uma tabela
+        for (AstNode fun : root.getChildren()) {
+            analyzeFunction(fun);
+        }
+
+        return errors;
     }
 
-    private void visit(AstNode node) {
-        if (node == null) return;
+    // ------------------------------------------------------------
+    //  Função
+    // ------------------------------------------------------------
+    private void analyzeFunction(AstNode functionNode) {
+        String functionName = functionNode.getValue();
+        SymbolTable functionTable = tableMap.get(functionName);
+
+        if (functionTable == null) {
+            errors.add("Erro interno: tabela de função não encontrada: " + functionName);
+            return;
+        }
+
+        AstNode block = functionNode.getChild(0);
+
+        // tipo de retorno esperado
+        SymbolTable.DataType expectedReturn = functionTable.getReturnType();
+
+        analyzeBlock(block, functionTable, expectedReturn);
+    }
+
+    // ------------------------------------------------------------
+    //  Bloco
+    // ------------------------------------------------------------
+    private void analyzeBlock(AstNode block, SymbolTable table, SymbolTable.DataType expectedReturn) {
+        for (AstNode child : block.getChildren()) {
+            analyzeNode(child, table, expectedReturn);
+        }
+    }
+
+    // ------------------------------------------------------------
+    //  Análise geral
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzeNode(
+            AstNode node,
+            SymbolTable table,
+            SymbolTable.DataType expectedReturn
+    ) {
 
         switch (node.getNodeType()) {
-            case FUNCTION -> handleFunction(node);
-            case BLOCK -> handleBlock(node);
-            case ASSIGN -> handleAssign(node);
-            case IF -> handleIf(node);
-            case WHILE -> handleWhile(node);
-            case PRINT -> handlePrint(node);
-            case RETURN -> handleReturn(node);
-            case CALL -> handleCall(node);
-            case ARITOP -> handleAritOp(node);
-            case RELOP -> handleRelOp(node);
-            case ID -> handleId(node);
-            case INTCONST, FLOATCONST, CHARCONST -> handleConst(node);
-            default -> node.getChildren().forEach(this::visit);
+
+            case ID:
+                return analyzeId(node, table);
+
+            case INTCONST:
+                node.setDataType(SymbolTable.DataType.INT);
+                return SymbolTable.DataType.INT;
+
+            case FLOATCONST:
+                node.setDataType(SymbolTable.DataType.FLOAT);
+                return SymbolTable.DataType.FLOAT;
+
+            case CHARCONST:
+                node.setDataType(SymbolTable.DataType.CHAR);
+                return SymbolTable.DataType.CHAR;
+
+            case ASSIGN:
+                return analyzeAssign(node, table);
+
+            case ARITOP:
+                return analyzeAritOp(node, table);
+
+            case RELOP:
+                return analyzeRelOp(node, table);
+
+            case RETURN:
+                return analyzeReturn(node, table, expectedReturn);
+
+            case IF:
+                return analyzeIf(node, table, expectedReturn);
+
+            case WHILE:
+                return analyzeWhile(node, table, expectedReturn);
+
+            case CALL:
+                return analyzeCall(node, table);
+
+            case PRINT:
+                return analyzePrint(node, table);
+
+            case BLOCK:
+                analyzeBlock(node, table, expectedReturn);
+                return SymbolTable.DataType.VOID;
+
+            default:
+                return SymbolTable.DataType.ERROR;
         }
     }
 
-    // ---------------- Escopo ----------------
-    private SymbolTable.Symbol resolveSymbol(String name) {
-        SymbolTable scope = currentScope;
-        while (scope != null) {
-            if (scope.containsSymbol(name)) return scope.getSymbol(name);
-            scope = scope.getParent();
-        }
-        return null;
-    }
-
-    private SymbolTable.FunctionRegister findFunctionByName(String name) {
-        for (var fn : globalTable.getAllFunctions()) {
-            if (fn.getName().equals(name)) return fn;
-        }
-        return null;
-    }
-
-    // ---------------- FUNCTION ----------------
-// Dentro de SemanticAnalyzer.java
-    private void handleFunction(AstNode node) {
+    // ------------------------------------------------------------
+    //  ID
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzeId(AstNode node, SymbolTable table) {
         String name = node.getValue();
+        SymbolTable current = table;
 
-        // Cria escopo da função como filho do escopo atual
-        SymbolTable fnTable = new SymbolTable(name, currentScope);
-        fnTable.setReturnType(node.getDataType());
+        while (current != null) {
+            if (current.containsSymbol(name)) {
+                SymbolTable.Symbol sym = current.getSymbol(name);
 
-        List<AstNode> params = new ArrayList<>();
-        AstNode body = null;
-
-        // Verifica se o primeiro filho é bloco ou parâmetros
-        AstNode firstChild = node.getChild(0);
-        if (firstChild.getNodeType() == AstNode.NodeType.BLOCK) {
-            body = firstChild;
-        } else {
-            // primeiro filho = parâmetros
-            params = firstChild.getChildren();
-            for (int i = 0; i < params.size(); i++) {
-                AstNode p = params.get(i);
-                fnTable.addSymbol(p.getValue(), p.getDataType().name(), true, i);
+                SymbolTable.DataType dt = convert(sym.getDataType());
+                node.setDataType(dt);
+                return dt;
             }
-            // segundo filho = corpo
-            if (node.getChildren().size() > 1) body = node.getChild(1);
+            current = current.getParent();
         }
 
-        // salva escopo atual e troca para o da função
-        SymbolTable oldScope = currentScope;
-        currentScope = fnTable;
-
-        // visita corpo
-        if (body != null) visit(body);
-
-        // adiciona a função no escopo global
-        globalTable.addFunction(
-                name,
-                params.size(),
-                params.stream().map(p -> p.getDataType().name()).toList(),
-                fnTable.getReturnType()
-        );
-
-        // volta para escopo anterior
-        currentScope = oldScope;
+        errors.add("Variável não declarada: " + name);
+        node.setDataType(SymbolTable.DataType.ERROR);
+        return SymbolTable.DataType.ERROR;
     }
 
-    // ---------------- BLOCK ----------------
-    private void handleBlock(AstNode node) {
-        for (AstNode c : node.getChildren()) visit(c);
+    private SymbolTable.DataType convert(String s) {
+        try {
+            return SymbolTable.DataType.valueOf(s.toUpperCase());
+        } catch (Exception e) {
+            return SymbolTable.DataType.ERROR;
+        }
     }
 
-    // ---------------- ASSIGN ----------------
-    private void handleAssign(AstNode node) {
+    // ------------------------------------------------------------
+    //  Atribuição
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzeAssign(AstNode node, SymbolTable table) {
         AstNode id = node.getChild(0);
         AstNode expr = node.getChild(1);
-        visit(expr);
 
-        SymbolTable.Symbol s = resolveSymbol(id.getValue());
-        if (s == null) {
-            System.err.println("Erro: variável '" + id.getValue() + "' não declarada.");
-            node.setDataType(SymbolTable.DataType.ERROR);
-            return;
+        SymbolTable.DataType t1 = analyzeNode(id, table, null);
+        SymbolTable.DataType t2 = analyzeNode(expr, table, null);
+
+        if (t1 != t2 && t2 != SymbolTable.DataType.ERROR) {
+            errors.add("Tipos incompatíveis em atribuição: "
+                    + t1 + " = " + t2);
         }
 
-        SymbolTable.DataType varType =
-                SymbolTable.DataType.valueOf(s.getDataType().toUpperCase());
-
-        if (expr.getDataType() != varType) {
-            System.err.println("Erro: variável '" + id.getValue() + "' recebe tipo incompatível.");
-            node.setDataType(SymbolTable.DataType.ERROR);
-        } else node.setDataType(varType);
+        node.setDataType(t1);
+        return t1;
     }
 
-    // ---------------- CALL ----------------
-    private void handleCall(AstNode node) {
-        String name = node.getValue();
-        var fn = findFunctionByName(name);
-        if (fn == null) {
-            System.err.println("Erro: função '" + name + "' não declarada.");
+    // ------------------------------------------------------------
+    //  Op Aritmética
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzeAritOp(AstNode node, SymbolTable table) {
+        SymbolTable.DataType left = analyzeNode(node.getChild(0), table, null);
+        SymbolTable.DataType right = analyzeNode(node.getChild(1), table, null);
+
+        if (left == SymbolTable.DataType.ERROR || right == SymbolTable.DataType.ERROR) {
             node.setDataType(SymbolTable.DataType.ERROR);
-            return;
+            return SymbolTable.DataType.ERROR;
         }
 
-        List<AstNode> args = node.getChildren();
-        if (args.size() != fn.getNumArgs()) {
-            System.err.println("Erro: chamada de '" + name + "' com número incorreto de argumentos.");
-        }
-
-        for (AstNode arg : args) visit(arg);
-
-        node.setDataType(fn.getReturnType());
-    }
-
-    // ---------------- RETURN ----------------
-    private void handleReturn(AstNode node) {
-        if (currentScope == globalTable) {
-            System.err.println("Erro: return fora de função.");
-            node.setDataType(SymbolTable.DataType.ERROR);
-            return;
-        }
-
-        if (node.getChildren().isEmpty()) {
-            if (currentScope.getReturnType() != SymbolTable.DataType.VOID) {
-                System.err.println("Erro: função deve retornar " + currentScope.getReturnType());
-                node.setDataType(SymbolTable.DataType.ERROR);
-            }
-            return;
-        }
-
-        AstNode expr = node.getChild(0);
-        visit(expr);
-
-        if (expr.getDataType() != currentScope.getReturnType()) {
-            System.err.println("Erro de retorno: esperado " + currentScope.getReturnType() +
-                    " mas retornado " + expr.getDataType());
-            node.setDataType(SymbolTable.DataType.ERROR);
-        } else node.setDataType(expr.getDataType());
-    }
-
-    // ---------------- RELACIONAL ----------------
-    private void handleRelOp(AstNode node) {
-        AstNode left = node.getChild(0);
-        AstNode right = node.getChild(1);
-
-        visit(left);
-        visit(right);
-
-        if (left.getDataType() == SymbolTable.DataType.ERROR ||
-                right.getDataType() == SymbolTable.DataType.ERROR) {
-            node.setDataType(SymbolTable.DataType.ERROR);
-            return;
-        }
-
-        if (left.getDataType() == SymbolTable.DataType.CHAR ||
-                right.getDataType() == SymbolTable.DataType.CHAR) {
-            System.err.println("Erro semântico: operação relacional inválida com CHAR.");
-            node.setDataType(SymbolTable.DataType.ERROR);
-            return;
+        // regra simples: int + int = int, float misturado vira float
+        if (left == SymbolTable.DataType.FLOAT || right == SymbolTable.DataType.FLOAT) {
+            node.setDataType(SymbolTable.DataType.FLOAT);
+            return SymbolTable.DataType.FLOAT;
         }
 
         node.setDataType(SymbolTable.DataType.INT);
+        return SymbolTable.DataType.INT;
     }
 
-    // ---------------- ARITOP ----------------
-    private void handleAritOp(AstNode node) {
-        AstNode left = node.getChild(0);
-        AstNode right = node.getChild(1);
+    // ------------------------------------------------------------
+    //  Operação Relacional
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzeRelOp(AstNode node, SymbolTable table) {
+        SymbolTable.DataType left = analyzeNode(node.getChild(0), table, null);
+        SymbolTable.DataType right = analyzeNode(node.getChild(1), table, null);
 
-        visit(left);
-        visit(right);
-
-        if (left.getDataType() == SymbolTable.DataType.FLOAT ||
-                right.getDataType() == SymbolTable.DataType.FLOAT) {
-            node.setDataType(SymbolTable.DataType.FLOAT);
-        } else node.setDataType(SymbolTable.DataType.INT);
-    }
-
-    // ---------------- IF ----------------
-    private void handleIf(AstNode node) {
-        AstNode cond = node.getChild(0);
-        AstNode thenBlock = node.getChild(1);
-
-        visit(cond);
-        if (cond.getDataType() == SymbolTable.DataType.CHAR ||
-                cond.getDataType() == SymbolTable.DataType.ERROR) {
-            System.err.println("Erro: condição do IF deve ser numérica.");
-        }
-
-        visit(thenBlock);
-        if (node.getChildren().size() == 3) visit(node.getChild(2));
-    }
-
-    // ---------------- WHILE ----------------
-    private void handleWhile(AstNode node) {
-        AstNode cond = node.getChild(0);
-        AstNode block = node.getChild(1);
-
-        visit(cond);
-        if (cond.getDataType() == SymbolTable.DataType.CHAR ||
-                cond.getDataType() == SymbolTable.DataType.ERROR) {
-            System.err.println("Erro: condição do WHILE deve ser numérica.");
-        }
-
-        visit(block);
-    }
-
-    // ---------------- PRINT ----------------
-    private void handlePrint(AstNode node) {
-        AstNode expr = node.getChild(0);
-        visit(expr);
-    }
-
-    // ---------------- ID ----------------
-    private void handleId(AstNode node) {
-        var s = resolveSymbol(node.getValue());
-        if (s == null) {
-            System.err.println("Erro semântico: variável '" + node.getValue() + "' não declarada.");
+        if (left == SymbolTable.DataType.ERROR || right == SymbolTable.DataType.ERROR) {
             node.setDataType(SymbolTable.DataType.ERROR);
-            return;
+            return SymbolTable.DataType.ERROR;
         }
-        node.setDataType(SymbolTable.DataType.valueOf(s.getDataType().toUpperCase()));
+
+        // comparações sempre resultam booleano → mas não temos bool → usei INT como padrão
+        node.setDataType(SymbolTable.DataType.INT);
+        return SymbolTable.DataType.INT;
     }
 
-    // ---------------- CONST ----------------
-    private void handleConst(AstNode node) {
-        switch (node.getNodeType()) {
-            case INTCONST -> node.setDataType(SymbolTable.DataType.INT);
-            case FLOATCONST -> node.setDataType(SymbolTable.DataType.FLOAT);
-            case CHARCONST -> node.setDataType(SymbolTable.DataType.CHAR);
+    // ------------------------------------------------------------
+    //  return
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzeReturn(
+            AstNode node,
+            SymbolTable table,
+            SymbolTable.DataType expectedReturn
+    ) {
+
+        AstNode expr = node.getChild(0);
+        SymbolTable.DataType t = analyzeNode(expr, table, expectedReturn);
+
+        if (expectedReturn != t && t != SymbolTable.DataType.ERROR) {
+            errors.add("Tipo de retorno incompatível. Esperado: "
+                    + expectedReturn + ", obtido: " + t);
         }
+
+        node.setDataType(t);
+        return t;
+    }
+
+    // ------------------------------------------------------------
+    //  IF
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzeIf(AstNode node, SymbolTable table, SymbolTable.DataType expectedReturn) {
+        AstNode cond = node.getChild(0);
+        analyzeNode(cond, table, expectedReturn);
+
+        // bloco verdadeiro
+        analyzeNode(node.getChild(1), table, expectedReturn);
+
+        // else?
+        if (node.getChildren().size() == 3) {
+            analyzeNode(node.getChild(2), table, expectedReturn);
+        }
+
+        node.setDataType(SymbolTable.DataType.VOID);
+        return SymbolTable.DataType.VOID;
+    }
+
+    // ------------------------------------------------------------
+    //  WHILE
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzeWhile(AstNode node, SymbolTable table, SymbolTable.DataType expectedReturn) {
+        analyzeNode(node.getChild(0), table, expectedReturn); // condição
+        analyzeNode(node.getChild(1), table, expectedReturn); // corpo
+        node.setDataType(SymbolTable.DataType.VOID);
+        return SymbolTable.DataType.VOID;
+    }
+
+    // ------------------------------------------------------------
+    //  print
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzePrint(AstNode node, SymbolTable table) {
+        if (!node.getChildren().isEmpty()) {
+            analyzeNode(node.getChild(0), table, null);
+        }
+
+        node.setDataType(SymbolTable.DataType.VOID);
+        return SymbolTable.DataType.VOID;
+    }
+
+    // ------------------------------------------------------------
+    //  call
+    // ------------------------------------------------------------
+    private SymbolTable.DataType analyzeCall(AstNode node, SymbolTable table) {
+        String functionName = node.getValue();
+
+        SymbolTable root = aux.symbolTables.get(0); // tabela global
+        FunctionRegister fn = null;
+
+        for (FunctionRegister fr : root.getAllFunctions()) {
+            if (fr.getName().equals(functionName)) {
+                fn = fr;
+                break;
+            }
+        }
+
+        if (fn == null) {
+            errors.add("Função não declarada: " + functionName);
+            node.setDataType(SymbolTable.DataType.ERROR);
+            return SymbolTable.DataType.ERROR;
+        }
+
+        if (node.getChildren().size() != fn.getNumArgs()) {
+            errors.add("Número de argumentos incorreto ao chamar "
+                    + functionName + ". Esperado: "
+                    + fn.getNumArgs() + ", obtido: " + node.getChildren().size());
+        }
+
+        // verifica tipos
+        for (int i = 0; i < node.getChildren().size(); i++) {
+            SymbolTable.DataType t = analyzeNode(node.getChild(i), table, null);
+            SymbolTable.DataType expected = convert(fn.getArgs().get(i));
+
+            if (t != expected && t != SymbolTable.DataType.ERROR) {
+                errors.add("Tipo do argumento " + (i + 1) + " incorreto na chamada de "
+                        + functionName + ". Esperado: " + expected + ", obtido: " + t);
+            }
+        }
+
+        node.setDataType(fn.getReturnType());
+        return fn.getReturnType();
     }
 }
