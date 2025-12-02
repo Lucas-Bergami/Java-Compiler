@@ -345,11 +345,11 @@ public class SyntacticAnalyzer {
 
     private AstNode atribuicaoOuChamada() {
         System.out.println("Entrou em atribuicaoOuChamada()");
-        // espera ID já no currentToken
         if (currentTokenType != Token.Type.ID) {
             lidaComErro(Token.Type.ID);
             return null;
         }
+
         String idLexeme = tokensToAnalyse.get(currentTokenIndex).getLexeme();
         match(Token.Type.ID);
 
@@ -370,13 +370,22 @@ public class SyntacticAnalyzer {
             // function call
             match(Token.Type.LBRACKET);
             AstNode callNode = new AstNode(CALL);
+            callNode.setValue(idLexeme);
             List<AstNode> args = listaArgs();
             if (args != null) callNode.addChildren(args);
             match(Token.Type.RBRACKET);
             match(Token.Type.SEMICOLON);
 
-            // set function name as value of call node (first child could be function id but we'll store in value)
-            callNode.setValue(idLexeme);
+            // ==== REGISTRA NA TABELA DE SÍMBOLOS ====
+            if (!symbolTables.isEmpty()) {
+                SymbolTable currentTable = symbolTables.lastElement();
+                int funcIndex = currentTable.addFunction(idLexeme, args != null ? args.size() : 0,
+                        null, SymbolTable.DataType.VOID);
+                // opcional: registrar a chamada no símbolo se existir
+                SymbolTable.Symbol s = currentTable.getSymbol(idLexeme);
+                if (s != null) s.addCallRef(funcIndex);
+            }
+
             return callNode;
         } else {
             lidaComErro(Token.Type.SEMICOLON);
@@ -646,15 +655,25 @@ public class SyntacticAnalyzer {
         if (currentTokenType == Token.Type.ID) {
             String idLexeme = tokensToAnalyse.get(currentTokenIndex).getLexeme();
             match(Token.Type.ID);
+
             if (currentTokenType == Token.Type.LBRACKET) {
+                // chamada de função como argumento
                 match(Token.Type.LBRACKET);
                 AstNode callNode = new AstNode(CALL);
                 callNode.setValue(idLexeme);
                 List<AstNode> args = listaArgs();
                 if (args != null) callNode.addChildren(args);
                 match(Token.Type.RBRACKET);
+
+                // registra na tabela de símbolos da função atual
+                if (!symbolTables.isEmpty()) {
+                    SymbolTable currentTable = symbolTables.lastElement();
+                    currentTable.addFunction(idLexeme, args != null ? args.size() : 0, null, SymbolTable.DataType.VOID);
+                }
+
                 return callNode;
             } else {
+                // variável simples
                 AstNode idNode = new AstNode(ID);
                 idNode.setValue(idLexeme);
                 return idNode;
