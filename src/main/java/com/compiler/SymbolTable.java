@@ -47,6 +47,15 @@ public class SymbolTable {
     public void addSymbol(String name, String dataType, boolean isParam, int posParam) {
         symbols.put(name, new Symbol(name, dataType, isParam, posParam));
     }
+    public void addSymbol(String name, String dataType, boolean isParam, int posParam, int callRefs) {
+        Symbol symbol = symbols.get(name);
+        if (symbol != null){
+            symbol.addCallRef(callRefs);
+        } else {
+            symbols.put(name, new Symbol(name, dataType, isParam, posParam, callRefs));
+        }
+    }
+
 
     public Symbol getSymbol(String name) {
         return symbols.get(name);
@@ -84,6 +93,16 @@ public class SymbolTable {
             this.isParam = isParam;
             this.posParam = posParam;
             this.callRefs = new ArrayList<>();
+        }
+
+        public Symbol(String name, String dataType, boolean isParam, int posParam, int callRefs) {
+            this.name = name;
+            this.dataType = dataType;
+            this.isParam = isParam;
+            this.posParam = posParam;
+            this.callRefs = new ArrayList<>();
+            addCallRef(callRefs);
+
         }
 
         public void addCallRef(int functionIndex) { callRefs.add(functionIndex); }

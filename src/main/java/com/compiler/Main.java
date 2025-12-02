@@ -3,6 +3,8 @@ package com.compiler;
 import java.util.Map;
 import java.util.Vector;
 
+import com.compiler.SyntacticAnalyzer.Aux;
+
 import static com.compiler.AstNode.printAst;
 
 public class Main {
@@ -33,10 +35,10 @@ public class Main {
 
         // === 2️⃣ Análise sintática ===
         SyntacticAnalyzer syntactic = new SyntacticAnalyzer();
-        AstNode root = syntactic.analyse(tokens);   // Agora deve retornar a AST corretamente
+        Aux aux = syntactic.analyse(tokens);   // Agora deve retornar a AST corretamente
 
 
-        if (root == null) {
+        if (aux == null) {
             System.out.println("A AST não foi construída. Análise semântica cancelada.");
             return;
         }

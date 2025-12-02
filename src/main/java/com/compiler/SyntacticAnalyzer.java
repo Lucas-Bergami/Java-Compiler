@@ -6,6 +6,8 @@ import java.util.Vector;
 
 import static com.compiler.AstNode.NodeType.*;
 
+
+
 public class SyntacticAnalyzer {
     private Vector<Token> tokensToAnalyse;
     private int currentTokenIndex;
@@ -14,7 +16,12 @@ public class SyntacticAnalyzer {
     private Vector<String> errors;
     public AstNode root;
 
-    public AstNode analyse(Vector<Token> tokens){
+    static class Aux {
+        public AstNode root;
+        public Vector<SymbolTable> symbolTables;
+    }
+
+    public Aux analyse(Vector<Token> tokens){
         System.out.println("Entrou em analyse()");
         root = new AstNode(AST);
         symbolTables = new Vector<>();
@@ -23,7 +30,10 @@ public class SyntacticAnalyzer {
         currentTokenIndex = 0;
         currentTokenType = (tokensToAnalyse.isEmpty() ? null : tokensToAnalyse.get(currentTokenIndex).getType());
         programa();
-        return root;
+        Aux aux = new Aux();
+        aux.root = root;
+        aux.symbolTables = symbolTables;
+        return aux;
     }
 
     private void lidaComErro(Token.Type expectedToken) {
@@ -408,14 +418,17 @@ public class SyntacticAnalyzer {
         System.out.println("Entrou em printCommand()");
         match(Token.Type.PRINTLN);
         match(Token.Type.LBRACKET);
-        AstNode arg = null;
+        match(Token.Type.FMT_STRING);
+        match(Token.Type.COMMA);
+        List<AstNode> args = null;
         if (currentTokenType != Token.Type.RBRACKET) {
-            arg = arg();
-        }        match(Token.Type.RBRACKET);
+            args = listaArgs();
+        }        
+        match(Token.Type.RBRACKET);
         match(Token.Type.SEMICOLON);
 
         AstNode printNode = new AstNode(PRINT);
-        if (arg != null) printNode.addChild(arg);
+        if (args != null) printNode.addChildren(args);
         return printNode;
     }
 
@@ -631,6 +644,7 @@ public class SyntacticAnalyzer {
         List<AstNode> children = new ArrayList<>();
         if (currentTokenType == Token.Type.ID || currentTokenType == Token.Type.INT_CONST
                 || currentTokenType == Token.Type.FLOAT_CONST || currentTokenType == Token.Type.CHAR_LITERAL) {
+            
             AstNode a = arg();
             if (a != null) children.add(a);
             children.addAll(listaArgs2());
@@ -668,7 +682,19 @@ public class SyntacticAnalyzer {
                 // registra na tabela de símbolos da função atual
                 if (!symbolTables.isEmpty()) {
                     SymbolTable currentTable = symbolTables.lastElement();
-                    currentTable.addFunction(idLexeme, args != null ? args.size() : 0, null, SymbolTable.DataType.VOID);
+                    SymbolTable.DataType returnType = SymbolTable.DataType.VOID;
+                    for (SymbolTable table : symbolTables) {
+                        if (table.getTableName().equals(idLexeme)){
+                            returnType = table.getReturnType();
+                        }
+                    }
+                    List<String> argNames = new ArrayList<String>();
+                    for (AstNode arg : args){
+                        String name = arg.getValue();
+                        argNames.add(name);
+                    }
+                    currentTable.addFunction(idLexeme, args != null ? args.size() : 0, argNames, returnType);
+                    currentTable.addSymbol(idLexeme, returnType.name(), false, -1, currentTable.getAllFunctions().size() - 1);
                 }
 
                 return callNode;

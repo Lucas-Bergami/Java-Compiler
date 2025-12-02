@@ -2,6 +2,8 @@ package com.compiler;
 
 import java.util.*;
 
+import com.compiler.SyntacticAnalyzer.Aux;
+
 public class SemanticAnalyzer {
 
     private SymbolTable globalTable;
@@ -12,8 +14,8 @@ public class SemanticAnalyzer {
         this.currentScope = globalTable;
     }
 
-    public void analyze(AstNode root) {
-        if (root != null) visit(root);
+    public void analyze(Aux aux) {
+        if (aux.root != null) visit(aux.root);
     }
 
     private void visit(AstNode node) {
