@@ -284,7 +284,6 @@ public class SemanticAnalyzer {
     // ------------------------------------------------------------
 
     private SymbolTable.DataType getExpectedParamType(SymbolTable calledTable, int i) {
-        System.err.println(calledTable.getTableName());
     for (SymbolTable.Symbol sym : calledTable.getSymbols().values()) {
         if (sym.isParam() && sym.getPosParam() == i) {
             return convert(sym.getDataType());

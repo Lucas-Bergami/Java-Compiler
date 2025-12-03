@@ -22,7 +22,6 @@ public class SyntacticAnalyzer {
     }
 
     public Aux analyse(Vector<Token> tokens){
-        System.out.println("Entrou em analyse()");
         root = new AstNode(AST);
         symbolTables = new Vector<>();
         errors = new Vector<>();
@@ -121,7 +120,6 @@ public class SyntacticAnalyzer {
 
     private AstNode funcao() {
         // Funcao -> fn ID ( ListaParams ) TipoRetornoFuncao Bloco
-        System.out.println("Entrou em funcao()");
         if (currentTokenType == null || currentTokenType != Token.Type.FUNCTION) {
             lidaComErro(Token.Type.FUNCTION);
             return null;
@@ -152,7 +150,6 @@ public class SyntacticAnalyzer {
     }
 
     private List<String> listaParams() {
-        System.out.println("Entrou em listaParams()");
         List<String> params = new ArrayList<>();
         if (currentTokenType == Token.Type.ID){
             String name = tokensToAnalyse.get(currentTokenIndex).getLexeme();
@@ -171,7 +168,6 @@ public class SyntacticAnalyzer {
     }
 
     private List<String> listaParams2() {
-        System.out.println("Entrou em listaParams2()");
         List<String> more = new ArrayList<>();
         if (currentTokenType == Token.Type.COMMA){
             match(Token.Type.COMMA);
@@ -190,7 +186,6 @@ public class SyntacticAnalyzer {
     }
 
     private String tipoRetornoFuncao() {
-        System.out.println("Entrou em tipoRetornoFuncao()");
         if (symbolTables.isEmpty()) return null;
 
         SymbolTable currentTable = symbolTables.lastElement();
@@ -220,7 +215,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode bloco() {
-        System.out.println("Entrou em bloco()");
         if (currentTokenType != Token.Type.LBRACE) {
             lidaComErro(Token.Type.LBRACE);
             return null;
@@ -240,7 +234,6 @@ public class SyntacticAnalyzer {
     }
 
     private List<AstNode> sequencia() {
-        System.out.println("Entrou em sequencia()");
         List<AstNode> children = new ArrayList<>();
         // sequencia -> (declaracao | comando)*
         while (currentTokenType != null &&
@@ -264,7 +257,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode declaracao() {
-        System.out.println("Entrou em declaracao()");
         // LET varList : type ;
         match(Token.Type.LET);
         List<String> vars = varList();
@@ -285,7 +277,6 @@ public class SyntacticAnalyzer {
     }
 
     private List<String> varList() {
-        System.out.println("Entrou em varList()");
         List<String> names = new ArrayList<>();
         if (currentTokenType == Token.Type.ID) {
             names.add(tokensToAnalyse.get(currentTokenIndex).getLexeme());
@@ -298,7 +289,6 @@ public class SyntacticAnalyzer {
     }
 
     private List<String> varList2() {
-        System.out.println("Entrou em varList2()");
         List<String> more = new ArrayList<>();
         if(currentTokenType == Token.Type.COMMA){
             match(Token.Type.COMMA);
@@ -310,7 +300,6 @@ public class SyntacticAnalyzer {
     }
 
     private String type() {
-        System.out.println("Entrou em type()");
         if(currentTokenType == Token.Type.INT) {
             match(Token.Type.INT);
             return "int";
@@ -327,7 +316,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode comando() {
-        System.out.println("Entrou em comando()");
         AstNode node = null;
         if(currentTokenType == Token.Type.ID) {
             // could be assignment or call
@@ -354,7 +342,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode atribuicaoOuChamada() {
-        System.out.println("Entrou em atribuicaoOuChamada()");
         if (currentTokenType != Token.Type.ID) {
             lidaComErro(Token.Type.ID);
             return null;
@@ -404,7 +391,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode whileCommand() {
-        System.out.println("Entrou em whileCommand()");
         match(Token.Type.WHILE);
         AstNode cond = expr();
         AstNode body = bloco();
@@ -415,7 +401,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode printCommand() {
-        System.out.println("Entrou em printCommand()");
         match(Token.Type.PRINTLN);
         match(Token.Type.LBRACKET);
         match(Token.Type.FMT_STRING);
@@ -475,7 +460,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode returnCommand() {
-        System.out.println("Entrou em returnCommand()");
         match(Token.Type.RETURN);
         AstNode exprNode = expr();
         match(Token.Type.SEMICOLON);
@@ -485,7 +469,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode comandoSe() {
-        System.out.println("Entrou em comandoSe()");
         match(Token.Type.IF);
         AstNode cond = expr();
         AstNode thenBlock = bloco();
@@ -513,7 +496,6 @@ public class SyntacticAnalyzer {
     /* -------------------- EXPRESSIONS -------------------- */
 
     private AstNode expr() {
-        System.out.println("Entrou em expr()");
         // expr -> rel ( (== | !=) rel )*
         AstNode left = rel();
         while (currentTokenType == Token.Type.EQ || currentTokenType == Token.Type.NE) {
@@ -530,7 +512,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode rel() {
-        System.out.println("Entrou em rel()");
         // rel -> adicao ( (< | <= | > | >=) adicao )*
         AstNode left = adicao();
         while (currentTokenType == Token.Type.LT || currentTokenType == Token.Type.LE
@@ -554,7 +535,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode adicao() {
-        System.out.println("Entrou em adicao()");
         // adicao -> termo ( (+ | -) termo )*
         AstNode left = termo();
         while (currentTokenType == Token.Type.PLUS || currentTokenType == Token.Type.MINUS) {
@@ -571,7 +551,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode termo() {
-        System.out.println("Entrou em termo()");
         // termo -> fator ( (* | /) fator )*
         AstNode left = fator();
         while (currentTokenType == Token.Type.MULT || currentTokenType == Token.Type.DIV) {
@@ -588,7 +567,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode fator() {
-        System.out.println("Entrou em fator()");
         // fator -> ID (call?) | INT_CONST | FLOAT_CONST | CHAR_LITERAL | ( expr )
         if (currentTokenType == Token.Type.ID) {
             String idLexeme = tokensToAnalyse.get(currentTokenIndex).getLexeme();
@@ -640,7 +618,6 @@ public class SyntacticAnalyzer {
     }
 
     private List<AstNode> listaArgs() {
-        System.out.println("Entrou em listaArgs()");
         List<AstNode> children = new ArrayList<>();
         if (currentTokenType == Token.Type.ID || currentTokenType == Token.Type.INT_CONST
                 || currentTokenType == Token.Type.FLOAT_CONST || currentTokenType == Token.Type.CHAR_LITERAL) {
@@ -653,7 +630,6 @@ public class SyntacticAnalyzer {
     }
 
     private List<AstNode> listaArgs2() {
-        System.out.println("Entrou em listaArgs2()");
         List<AstNode> more = new ArrayList<>();
         if (currentTokenType == Token.Type.COMMA) {
             match(Token.Type.COMMA);
@@ -665,7 +641,6 @@ public class SyntacticAnalyzer {
     }
 
     private AstNode arg() {
-        System.out.println("Entrou em arg()");
         if (currentTokenType == Token.Type.ID) {
             String idLexeme = tokensToAnalyse.get(currentTokenIndex).getLexeme();
             match(Token.Type.ID);
@@ -732,15 +707,9 @@ public class SyntacticAnalyzer {
     }
 
     public void saveOutputs() {
-        System.out.println("Entrou em saveOutputs()");
         JsonExporter exporter = new JsonExporter();
 
         exporter.exportToFile(errors, "erros_sintaticos.json");
         exporter.exportToFile(symbolTables, "tabelas_de_simbolos.json");
-
-        System.out.println("=== Tabelas de Símbolos ===");
-        for (SymbolTable table : symbolTables) {
-            System.out.println(table);
-        }
     }
 }

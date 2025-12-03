@@ -54,8 +54,6 @@ public class Main {
         if (!semanticErrors.isEmpty()) {
             System.out.println("Erros semânticos encontrados:");
             semanticErrors.forEach(System.out::println);
-        } else {
-            System.out.println("Análise semântica concluída com sucesso!");
         }
 
         System.out.println("Análise semântica concluída com sucesso!");
