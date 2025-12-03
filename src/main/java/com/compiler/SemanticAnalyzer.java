@@ -150,11 +150,13 @@ public class SemanticAnalyzer {
     }
 
     private SymbolTable.DataType convert(String s) {
-        try {
-            return SymbolTable.DataType.valueOf(s.toUpperCase());
-        } catch (Exception e) {
-            return SymbolTable.DataType.ERROR;
-        }
+        return switch (s) {
+        case "int" -> SymbolTable.DataType.INT;
+        case "float" -> SymbolTable.DataType.FLOAT;
+        case "char" -> SymbolTable.DataType.CHAR;
+        case "void" -> SymbolTable.DataType.VOID;
+        default -> SymbolTable.DataType.ERROR;
+        };
     }
 
     // ------------------------------------------------------------
@@ -280,13 +282,24 @@ public class SemanticAnalyzer {
     // ------------------------------------------------------------
     //  call
     // ------------------------------------------------------------
+
+    private SymbolTable.DataType getExpectedParamType(SymbolTable calledTable, int i) {
+        System.err.println(calledTable.getTableName());
+    for (SymbolTable.Symbol sym : calledTable.getSymbols().values()) {
+        if (sym.isParam() && sym.getPosParam() == i) {
+            return convert(sym.getDataType());
+        }
+    }
+    return SymbolTable.DataType.ERROR;
+    }
+
+
     private SymbolTable.DataType analyzeCall(AstNode node, SymbolTable table) {
         String functionName = node.getValue();
 
-        SymbolTable root = aux.symbolTables.get(0); // tabela global
         FunctionRegister fn = null;
 
-        for (FunctionRegister fr : root.getAllFunctions()) {
+        for (FunctionRegister fr : table.getAllFunctions()) {
             if (fr.getName().equals(functionName)) {
                 fn = fr;
                 break;
@@ -308,7 +321,14 @@ public class SemanticAnalyzer {
         // verifica tipos
         for (int i = 0; i < node.getChildren().size(); i++) {
             SymbolTable.DataType t = analyzeNode(node.getChild(i), table, null);
-            SymbolTable.DataType expected = convert(fn.getArgs().get(i));
+            SymbolTable calledTable = new SymbolTable("teste");
+            for (SymbolTable tempTable : aux.symbolTables){
+                if (tempTable.getTableName().equals(fn.getName())){
+                    calledTable = tempTable;
+                }
+            }
+            SymbolTable.DataType expected = getExpectedParamType(calledTable, i);
+
 
             if (t != expected && t != SymbolTable.DataType.ERROR) {
                 errors.add("Tipo do argumento " + (i + 1) + " incorreto na chamada de "

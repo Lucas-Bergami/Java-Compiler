@@ -129,7 +129,7 @@ public class SyntacticAnalyzer {
 
         match(Token.Type.FUNCTION);
         // pega nome e cria symbol table
-        String funcName = (currentTokenType == Token.Type.ID) ? tokensToAnalyse.get(currentTokenIndex).getLexeme() : "anonymous";
+        String funcName = (currentTokenType == Token.Type.ID) ? tokensToAnalyse.get(currentTokenIndex).getLexeme() : "main";
         nomeFuncao(); // consumes ID and adds symbol table
 
         AstNode functionNode = new AstNode(FUNCTION);
